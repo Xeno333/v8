@@ -89,7 +89,7 @@ core.register_on_generated(function(vm, minp, maxp, seed)
                     data[vi] = biome.node_top
 
                 elseif y < 2 then
-                    if biome.node_water_top and biome.depth_water_top and y > 2 - node_water_top then
+                    if biome.node_water_top and biome.depth_water_top and y > 2 - biome.node_water_top then
                         data[vi] = biome.node_water_top
                     else
                         data[vi] = biome.node_water or water
