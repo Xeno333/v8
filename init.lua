@@ -1,5 +1,7 @@
 core.register_mapgen_script(core.get_modpath("v8") .. "/mapgen.lua")
 
+local v = vector.new(1, 1, 1)
+
 core.register_on_generated(function(minp, maxp, _)
-    core.fix_light(minp, maxp)
+    core.fix_light(minp - v, maxp + v)
 end)

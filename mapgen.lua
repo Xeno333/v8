@@ -34,7 +34,6 @@ local mg_flags = core.get_mapgen_setting("mg_flags")
 for flag in string.gmatch(mg_flags, "([^, ]+)") do
     settings[flag] = true
 end
-print(dump(settings))
 
 
 for name, v in pairs(core.registered_biomes) do
