@@ -2,6 +2,17 @@ local stone = core.get_content_id("mapgen_stone")
 local water = core.get_content_id("mapgen_water_source")
 local air = core.get_content_id("air")
 
+-- Settings
+
+local settings = {}
+local mg_flags = core.get_mapgen_setting("mg_flags")
+for flag in string.gmatch(mg_flags, "([^, ]+)") do
+    settings[flag] = true
+end
+
+
+-- Params
+
 local internal_scale = 10
 
 local noise_params = {
@@ -16,6 +27,26 @@ local noise_params = {
 }
 local noise = core.get_value_noise_map(noise_params, vector.new(80, 80, 80))
 
+local caves_noise_params = nil
+local caves_noise = nil
+
+if settings.caves then
+    caves_noise_params = {
+        offset = 0,
+        seed = 345876,
+        scale = 1,
+        spread = vector.new(128, 32, 128),
+        octaves = 4,
+        persistence = 0.75,
+        lacunarity = 1.5,
+        flags = "eased"
+    }
+    caves_noise = core.get_value_noise_map(caves_noise_params, vector.new(80, 80, 80))
+end
+
+
+-- Biomes
+
 local biomes = {}
 local biomes_fields = {
     node_dust = true,
@@ -28,13 +59,6 @@ local biomes_fields = {
     depth_water_top = true,
     node_water = true
 }
-
-local settings = {}
-local mg_flags = core.get_mapgen_setting("mg_flags")
-for flag in string.gmatch(mg_flags, "([^, ]+)") do
-    settings[flag] = true
-end
-
 
 for name, v in pairs(core.registered_biomes) do
     local id = core.get_biome_id(name)
@@ -63,7 +87,7 @@ end
 
 
 
-
+-- Generate
 
 core.register_on_generated(function(vm, minp, maxp, seed)
     local emin, emax = vm:get_emerged_area()
@@ -71,6 +95,11 @@ core.register_on_generated(function(vm, minp, maxp, seed)
     local data = vm:get_data()
 
     local noise_map = noise:get_2d_map(vector.new(minp.x, minp.z, 0))
+
+    local cave_noise_map = nil
+    if caves_noise ~= nil then
+        cave_noise_map = caves_noise:get_3d_map(vector.new(minp.x, minp.y, minp.z))
+    end
 
     local lx = 0
     for x = minp.x, maxp.x do
@@ -83,9 +112,14 @@ core.register_on_generated(function(vm, minp, maxp, seed)
             local yt = math.floor(point_noise)
             local biome = biomes[core.get_biome_data({x=x, y=yt, z=z}).biome]
 
+            local ly = 0
             for y = minp.y, maxp.y do
-                local vi = area:index(x, y, z)
+                ly = ly + 1
+                if cave_noise_map ~= nil and cave_noise_map[lz][ly][lx] <= -0.9 then
+                    goto skip
+                end
 
+                local vi = area:index(x, y, z)
                 if y < yt - biome.depth_filler then
                     data[vi] = biome.node_stone or stone
 
@@ -105,6 +139,8 @@ core.register_on_generated(function(vm, minp, maxp, seed)
                 elseif biome.node_dust and y == yt + biome.depth_top then
                     data[vi] = biome.node_dust
                 end
+
+                ::skip::
             end
         end
     end
@@ -117,4 +153,6 @@ core.register_on_generated(function(vm, minp, maxp, seed)
     if settings.ores then
         core.generate_ores(vm, emin, emax)
     end
+
+    vm:update_liquids()
 end)
