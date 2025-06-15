@@ -29,6 +29,14 @@ local biomes_fields = {
     node_water = true
 }
 
+local settings = {}
+local mg_flags = core.get_mapgen_setting("mg_flags")
+for flag in string.gmatch(mg_flags, "([^, ]+)") do
+    settings[flag] = true
+end
+print(dump(settings))
+
+
 for name, v in pairs(core.registered_biomes) do
     local id = core.get_biome_id(name)
 
@@ -104,6 +112,10 @@ core.register_on_generated(function(vm, minp, maxp, seed)
 
     vm:set_data(data)
 
-    core.generate_ores(vm, emin, emax)
-    core.generate_decorations(vm, emin, emax)
+    if settings.decorations then
+        core.generate_decorations(vm, emin, emax)
+    end
+    if settings.ores then
+        core.generate_ores(vm, emin, emax)
+    end
 end)
