@@ -1,4 +1,4 @@
-local stone = core.get_content_id("mapgen_stone")
+local mapgen_stone = core.get_content_id("mapgen_stone")
 local water = core.get_content_id("mapgen_water_source")
 local air = core.get_content_id("air")
 
@@ -110,24 +110,33 @@ core.register_on_generated(function(vm, minp, maxp, seed)
 
             local point_noise = noise_map[lz][lx] * internal_scale
             local yt = math.floor(point_noise)
+
             local biome = biomes[core.get_biome_data({x=x, y=yt, z=z}).biome]
+
+            local stone = biome.node_stone or mapgen_stone
+            local node_top = biome.node_top
+
+            local top_y = yt
+            if node_top then
+                top_y = top_y + biome.depth_top
+            end
 
             local ly = 0
             for y = minp.y, maxp.y do
                 ly = ly + 1
-                if cave_noise_map ~= nil and cave_noise_map[lz][ly][lx] <= -0.9 then
+                if cave_noise_map ~= nil and y <= top_y and cave_noise_map[lz][ly][lx] <= -0.9 then
                     goto skip
                 end
 
                 local vi = area:index(x, y, z)
-                if y < yt - biome.depth_filler then
-                    data[vi] = biome.node_stone or stone
 
-                elseif biome.node_filler and y < yt then
+                if y < yt - biome.depth_filler then
+                    data[vi] = stone
+                elseif y < yt then
                     data[vi] = biome.node_filler or stone
 
-                elseif biome.node_top and (y < yt + biome.depth_top) then
-                    data[vi] = biome.node_top
+                elseif node_top and y <= top_y then
+                    data[vi] = node_top
 
                 elseif y < 2 then
                     if biome.node_water_top and biome.depth_water_top and y > 2 - biome.node_water_top then
