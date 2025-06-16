@@ -86,6 +86,17 @@ for name, v in pairs(core.registered_biomes) do
 end
 
 
+-- Nodes
+
+local nodes = {}
+
+for n, def in pairs(core.registered_nodes) do
+    nodes[core.get_content_id(n)] = {
+        is_ground_content = def.is_ground_content
+    }
+end
+
+
 
 -- Generate
 
@@ -115,6 +126,7 @@ core.register_on_generated(function(vm, minp, maxp, seed)
 
             local stone = biome.node_stone or mapgen_stone
             local node_top = biome.node_top
+            local node_dust = biome.node_dust
 
             local top_y = yt
             if node_top then
@@ -124,32 +136,32 @@ core.register_on_generated(function(vm, minp, maxp, seed)
             local ly = 0
             for y = minp.y, maxp.y do
                 ly = ly + 1
-                if cave_noise_map ~= nil and y <= top_y and cave_noise_map[lz][ly][lx] <= -0.9 then
-                    goto skip
-                end
 
-                local vi = area:index(x, y, z)
+                local node = nil
 
                 if y < yt - biome.depth_filler then
-                    data[vi] = stone
+                    node = stone
                 elseif y < yt then
-                    data[vi] = biome.node_filler or stone
+                    node = biome.node_filler or stone
 
                 elseif node_top and y <= top_y then
-                    data[vi] = node_top
+                    node = node_top
 
                 elseif y < 2 then
                     if biome.node_water_top and biome.depth_water_top and y > 2 - biome.node_water_top then
-                        data[vi] = biome.node_water_top
+                        node = biome.node_water_top
                     else
-                        data[vi] = biome.node_water or water
+                        node = biome.node_water or water
                     end
 
-                elseif biome.node_dust and y == yt + biome.depth_top then
-                    data[vi] = biome.node_dust
+                elseif node_dust and y == top_y+1 then
+                    node = node_dust
                 end
 
-                ::skip::
+                -- Generate if not cave
+                if node and (nodes[node].is_ground_content or cave_noise_map == nil or not (cave_noise_map[lz][ly][lx] <= -0.9)) then
+                    data[area:index(x, y, z)] = node
+                end
             end
         end
     end
