@@ -1,5 +1,5 @@
 local mapgen_stone = core.get_content_id("mapgen_stone")
-local water = core.get_content_id("mapgen_water_source")
+local mapgen_water = core.get_content_id("mapgen_water_source")
 local air = core.get_content_id("air")
 
 -- Settings
@@ -66,7 +66,8 @@ for name, v in pairs(core.registered_biomes) do
     -- Make table and defaults
     biomes[id] = {
         depth_top = 1,
-        depth_filler = 3
+        depth_filler = 3,
+        depth_water_top = 0
     }
 
     for k, i in pairs(v) do
@@ -125,8 +126,10 @@ core.register_on_generated(function(vm, minp, maxp, seed)
             local biome = biomes[core.get_biome_data({x=x, y=yt, z=z}).biome]
 
             local stone = biome.node_stone or mapgen_stone
+            local water = biome.node_water or mapgen_water
             local node_top = biome.node_top
             local node_dust = biome.node_dust
+            local cave_depth = (yt - biome.depth_filler - 2)
 
             local top_y = yt
             if node_top then
@@ -137,7 +140,7 @@ core.register_on_generated(function(vm, minp, maxp, seed)
             for y = minp.y, maxp.y do
                 ly = ly + 1
 
-                local node = nil
+                local node = air
 
                 if y < yt - biome.depth_filler then
                     node = stone
@@ -148,10 +151,10 @@ core.register_on_generated(function(vm, minp, maxp, seed)
                     node = node_top
 
                 elseif y < 2 then
-                    if biome.node_water_top and biome.depth_water_top and y > 2 - biome.node_water_top then
-                        node = biome.node_water_top
+                    if y > 2 - biome.depth_water_top then
+                        node = biome.node_water_top or water
                     else
-                        node = biome.node_water or water
+                        node = water
                     end
 
                 elseif node_dust and y == top_y+1 then
@@ -159,7 +162,10 @@ core.register_on_generated(function(vm, minp, maxp, seed)
                 end
 
                 -- Generate if not cave
-                if node and (nodes[node].is_ground_content or cave_noise_map == nil or not (cave_noise_map[lz][ly][lx] <= -0.9)) then
+                if (node ~= air and not nodes[node].is_ground_content) or -- Allowed to place
+                    cave_noise_map == nil or -- No mapgen
+                    not (y <= cave_depth and cave_noise_map[lz][ly][lx] <= -0.9) then -- Y and Noise
+
                     data[area:index(x, y, z)] = node
                 end
             end
