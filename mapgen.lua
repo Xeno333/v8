@@ -147,7 +147,7 @@ core.register_on_generated(function(vm, minp, maxp, seed)
                 elseif y < yt then
                     node = biome.node_filler or stone
 
-                elseif node_top and y <= top_y then
+                elseif node_top and y < top_y then
                     node = node_top
 
                 elseif y < 2 then
